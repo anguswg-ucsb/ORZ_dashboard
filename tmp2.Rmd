@@ -1,0 +1,44 @@
+---
+title: "app"
+output:
+    flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r}
+library(flexdashboard)
+library(shiny)
+library(DT)
+library(raster)
+```
+
+```{r}
+fetch_cat7     <- raster::raster("fetch_mean_dist_480m_resampled_cat7.tif")
+```
+
+
+```{r}
+splitLayout(
+  cellWidths = c("30%", "70%"),
+  wellPanel(  
+    downloadButton("downloadData")
+    ),
+  plotOutput("OrigData")
+)
+
+output$downloadData<-downloadHandler(
+ filename =  "fetch_mean_dist_480m_resampled_cat7.tif" ,
+    content = function(file) {
+        raster::writeRaster(fetch_cat7, file=file)
+      # write.csv(mtcars, file=file)
+    },
+   contentType = NA
+  # contentType="text/csv"
+)
+
+output$OrigData <- renderPlot(
+  plot(fetch_cat7)
+  )
+```

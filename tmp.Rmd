@@ -1,0 +1,84 @@
+---
+title: "ORZ visualization tool"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard: 
+    navbar:
+      - { icon: "fa-question-circle", href: "https://github.com/anguswg-ucsb/ORZ_dashboard", align: right }
+    theme: cerulean
+    orientation: columns
+    source_code: embed
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(shiny)
+library(flexdashboard)
+library(dplyr)
+library(sf)
+library(raster)
+library(DT)
+```
+
+```{r}
+# full masks for OPEN LDH areas
+mask_open      <- readRDS("grid_mask_ldh_open.rds")%>% 
+  st_transform(4326) %>% 
+  mutate(label = "Final mask (LDH open)")
+
+waterways      <- raster::raster("navig_waterways_480m_resampled.tif")
+
+sowb           <- sf::read_sf("state_owned_water_bottoms_simplified.shp")
+# waterways      <- readRDS("navig_waterways_buffer.rds") %>% 
+#   st_transform(4326) %>% 
+#   mutate(label = "Navigatable waterways")
+data_path <- "../ORZ_dashboard/www/"
+
+file_df <- data.frame(
+                files      = list.files(data_path, full.names = TRUE)
+              ) %>%
+              mutate(
+                name       = basename(files),
+                extension  = tools::file_ext(files)
+                     )
+```
+
+Data outputs
+=====================================
+Inputs {.sidebar}
+-------------------------------------
+### 
+```{r}
+wellPanel(downloadButton("downloadData"))
+```
+
+```{r}
+# data.frame(files = list.files(…, full.names = TRUE) %>% mutate(name = basename(files))
+# use files to que DL and basenames to select
+output$downloadData<-downloadHandler(
+ filename =  "waterways.tif" ,
+    content = function(file) {
+        raster::writeRaster(waterways, file=file)
+      # write.csv(mtcars, file=file)
+    },
+   contentType = NA
+  # contentType="text/csv"
+)
+# selectInput(
+#   "fileSelect",
+#   "Choose file",
+#   selected = "grid_mask_ldh_open.rds",
+#   choices  = file_df$name
+#   )
+# datasetInput <- reactive({
+#   input$fileSelect
+# })
+```
+
+
+
+
+
+
+
+

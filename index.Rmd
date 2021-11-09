@@ -1,0 +1,335 @@
+---
+title: "ORZ visualization tool"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard: 
+    navbar:
+      - { icon: "fa-question-circle", href: "https://github.com/anguswg-ucsb/ORZ_dashboard", align: right }
+    theme: cerulean
+    orientation: columns
+    source_code: embed
+    vertical_layout: fill
+---
+
+```{r setup, include = FALSE}
+# Shiny & Flexdashboard libraries
+library(shiny)
+library(flexdashboard)
+
+# Data libraries
+library(tidyr)
+library(dplyr)
+library(leaflet)
+library(sf)
+library(rgdal)
+library(raster)
+library(viridisLite)
+library(leaflegend)
+library(RColorBrewer)
+
+
+source('utils.R')
+```
+
+ 
+
+```{r context="server"}
+path           <- "C:/Users/angus/OneDrive/Desktop/lynker/CPRA/data/"
+
+# coord ref. system 26915
+crs            <- CRS('+init=EPSG:26915')
+
+# extent for all rasters 
+ext            <- extent(c(405220, 909700, 3199570, 3416530))
+
+land_sf        <- readRDS("land_polygon_simple_v4.rds") %>% 
+        st_transform(26915) %>% 
+        st_transform(4326) %>% 
+        mutate(label = "Land")
+
+# ldh <- readRDS("Final_Classification_Areas_All.rds") %>% 
+#   st_transform(4326)
+# ldh$Status <- factor(ldh$Status)
+
+# ldh <- readRDS("Final_Classification_Areas_All_v2.rds")
+ldh <- readRDS("ldh_classifications.rds") %>%
+          st_transform(26915) %>%
+          st_transform(4326) %>%
+          mutate(
+              Status = case_when(
+                Status == "open" ~ "Open",
+                Status == "Closed" ~ "Closed",
+                Status == "intermed" ~ "Intermediate"
+                )
+              )
+# ldh <- sf::read_sf("ldh_classification.shp")
+# ldh_shp <- ldh %>% 
+#   sf::st_as_sf()
+# 
+# sf::write_sf(ldh_shp, "shp_data/ldh_classification.shp")
+
+# fetch_rc <- raster::raster("fetch_reclass_mean_dist_480m.tif")
+# fetch          <- raster::raster("fetch_mean_dist_480m_resampled.tif")
+# fetch_rc       <- raster::raster("fetch_mean_dist_480m_resampled_reclass.tif")
+
+# 7 categories (1km, 2km, 3km, 4km, 5km, 7km, 10km, 20km)
+fetch_cat7     <- raster::raster("fetch_mean_dist_480m_resampled_cat7.tif")
+
+road_buffer    <- readRDS("road_buffer2.rds")
+# road_buffer    <- sf::read_sf("road_buffer_polygon.shp") %>% 
+#   rename(buffer_dist = "bffr_ds")
+# road_buffer    <- readRDS("road_buffer_clip.rds") %>%
+#     st_transform(26915) %>%
+#     st_transform(4326) %>%
+#     mutate(
+#       buffer_dist = case_when(
+#             buffer == 2   ~ "2km road buffer",
+#             buffer == 5   ~ "5km road buffer",
+#             buffer == 10  ~ "10km road buffer",
+#             buffer == 20  ~ "20km road buffer")
+#            ) %>%
+#     st_cast("MULTILINESTRING")
+
+# road_stk       <- raster::stack("road_buffers_480m.tif") %>% 
+#   setNames(c("road_buffer_2km","road_buffer_5km", "road_buffer_10km",  "road_buffer_20km"))
+
+
+# cpra_projects  <-  raster::raster("restoration_inf_projects_buffer_union.tif")
+cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
+      st_transform(4326) %>%
+      mutate(label = "Restoration projects buffer")
+# cpra_proj_poly <- sf::read_sf("restoration_inf_projects_buffer.shp")
+# cup <- raster::raster("cup_buffer_union_simplified.tif")
+cup <- readRDS("cup_buffer_union_simplified.rds") %>%
+      st_transform(4326) %>%
+      mutate(label = "Coastal use permits buffer")
+
+# cup_shp <- sf::read_sf("cup_buffer.shp")
+# cpra_projects  <- raster::raster("restoration_inf_projects_buffer_480m.tif")
+# cpra_proj_poly <- readRDS("restoration_inf_projects_buffer_union.rds") %>%
+#   st_transform(4326) %>%
+#   mutate(label = "Restoration projects buffer")
+
+
+aoc            <- readRDS("aoc_area_polygon.rds") %>%
+      st_transform(4326) %>%
+      st_union() %>%
+      st_as_sf() %>%
+      mutate(
+        label   = "AOC areas"
+        )
+# aoc <- sf::read_sf("aoc_area_polygon.shp")
+
+# waterways      <- raster::raster("navig_waterways_480m_resampled.tif")
+waterways      <- readRDS("navig_waterways_buffer.rds") %>%
+      st_transform(4326) %>%
+      mutate(label = "Navigatable waterways")
+# waterways <- sf::read_sf("navigtable_waterways.shp") %>% 
+#   st_union() %>% 
+#   st_sf()  %>% 
+#   mutate(label = "Navigatable waterways")
+
+
+# salinity rasters 
+sal3           <-  raster::raster("salinity_03_03_480m_res_mask_v2.tif")
+sal10          <-  raster::raster("salinity_10_10_480m_res_mask_v2.tif")
+
+
+# depth inundation rasters
+depth1         <- raster::raster('depth_inundation_01_01_480m_resample.tif')
+# depth3         <- raster::raster('depth_inundation_03_03_480m_resample.tif')
+# depth10        <- raster::raster('depth_inundation_10_10_480m_resample.tif')
+
+# Water level variability 
+wlvl_clamp      <- raster::raster("wlvl_variability_2021_025_threshold.tif")
+# wlvl_2021      <- raster::raster("wlvl_variability_2021_threshold.tif")
+# wlvl_clamp      <- raster::raster("wlvl_variability_2021_05_threshold.tif")
+
+
+# HSI rasters
+hsi_sal3       <- raster::raster("hsi_salinity_03_03_resample_mask.tif")
+hsi_sal10      <- raster::raster("hsi_salinity_10_10_resample_mask.tif")
+
+hsi_sal3_mask  <- raster::raster("hsi_salinity_03_03_full_mask.tif")
+hsi_sal10_mask  <- raster::raster("hsi_salinity_10_10_full_mask.tif")
+
+# State owned water bottoms 
+sowb           <- raster::raster("state_owned_water_bottoms_480m.tif")
+
+# full masks for OPEN LDH areas
+mask_open      <- readRDS("grid_mask_ldh_open.rds")%>%
+  st_transform(4326) %>%
+  mutate(label = "Final mask (LDH open)")
+# # full masks for OPEN & INTERMED. LDH areas
+mask_interm    <- readRDS("grid_mask_ldh_open_intermed.rds") %>%
+  st_transform(4326) %>%
+  mutate(label = "Final mask (LDH open + intermed.)")
+
+# mask_open <- sf::read_sf("mask_open.shp")
+# mask_interm <- sf::read_sf("mask_interm.shp")
+# raster_path <- "../ORZ_dashboard/raster_data/"
+# 
+# raster_df <- data.frame(
+#                 files      = list.files(raster_path, full.names = TRUE)
+#               ) %>%
+#               mutate(
+#                 name       = basename(files),
+#                 extension  = tools::file_ext(files)
+#                      )
+# data_path <- "../ORZ_dashboard/www/"
+
+# file_df <- data.frame(
+#                 files      = list.files(data_path, full.names = TRUE)
+#               ) %>%
+#               mutate(
+#                 name       = basename(files),
+#                 extension  = tools::file_ext(files)
+#                      ) %>% 
+#               filter(extension %in% c("tif", "shp"))
+
+
+file_df <- readRDS("file_directory.rds") %>% 
+  filter(extension == "tif")
+
+# df <- data.frame(
+# files = c("../ORZ_dashboard/www/cup_buffer.shp", "../ORZ_dashboard/www/road_buffer_polygon.shp","../ORZ_dashboard/www/restoration_inf_projects_buffer.shp"),
+# name  = c("cup_buffer.shp", "road_buffer_polygon.shp", "restoration_inf_projects_buffer.shp"), 
+# extension = c("shp", "shp", "shp"))
+  # filter(extension == "tif")
+# road_line <- road_buffer %>% 
+#   st_cast("MULTILINESTRING")
+
+# Initialize Maps 
+output$baseMap        <- renderLeaflet({
+    basemap(
+        land_sf         = land_sf,
+        road_buffer     = road_buffer,
+        cpra_proj_poly  = cpra_proj_poly,
+        cup             = cup,
+        mask_open       = mask_open,
+        mask_interm     = mask_interm,
+        sowb            = sowb,
+        ldh             = ldh,
+        aoc             = aoc,
+        sal3            = sal3,
+        sal10           = sal10,
+        depth1          = depth1,
+        wlvl_clamp      = wlvl_clamp,
+        hsi_sal3        = hsi_sal3,
+        hsi_sal10       = hsi_sal10,
+        hsi_sal3_mask   = hsi_sal3_mask,
+        hsi_sal10_mask  = hsi_sal10_mask,
+        fetch_cat7      = fetch_cat7,
+        waterways       = waterways
+        )
+  })
+
+```
+
+
+Data outputs
+=====================================
+Inputs {.sidebar}
+-------------------------------------
+
+***
+
+<br>
+
+```{r}
+selectInput(
+  inputId   =  "fileSelect",
+  label     =  "Download data",
+  selected  =  NULL,
+  choices   =  file_df$name
+  )
+```
+
+```{r}
+dataFile <- reactive({
+  input$fileSelect
+})
+
+fileExt <- reactive({
+  ext <- file_df %>% 
+            filter(name == paste0(dataFile()))   
+            # filter(name == "salinity_10_10_480m_res_mask_v2.tif")
+            
+  ext$extension
+})
+```
+
+### 
+```{r}
+wellPanel(downloadButton("downloadData"))
+```
+
+```{r}
+output$downloadData <- downloadHandler(
+   filename =  function() {
+     # paste0(rasterFile())
+      paste0(dataFile())
+     },
+   # filename =  paste0(datasetInput()),
+    content = function(file) {
+      if(fileExt() == "shp") {
+               # saveRDS(paste0(dataFile()), file=file)
+        sf::st_write(sf::read_sf(paste0(dataFile())), file)
+      } else if (fileExt() == "tif") {
+               raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
+      }
+              # raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
+        # raster::writeRaster(raster::raster(paste0(rasterFile())), file=file)
+      # write.csv(mtcars, file=file)
+    },
+   contentType = NA
+  # contentType="text/csv"
+)
+```
+
+Column {data-width=250}
+-----------------------------------------------------------------------
+### CPRA map
+```{r}
+leafletOutput("baseMap")
+```
+
+<!-- ### file name -->
+<!-- ```{r} -->
+<!-- verbatimTextOutput("fileName") -->
+<!-- ``` -->
+
+<!-- ```{r context = "server"} -->
+<!-- output$fileName <- renderText({ -->
+<!--     paste0(dataFile()) -->
+<!--   # paste0(rasterFile()) -->
+<!-- }) -->
+<!-- ``` -->
+
+<!-- ### file extension -->
+<!-- ```{r} -->
+<!-- verbatimTextOutput("extensionText") -->
+<!-- ``` -->
+
+<!-- ```{r context = "server"} -->
+<!-- output$extensionText <- renderText({ -->
+<!--     ext <- file_df %>%  -->
+<!--             filter(name == paste0(dataFile())) -->
+<!--             # filter(name ==  "grid_mask_ldh_open.rds")  -->
+<!--     paste0(ext$extension) -->
+<!--   # paste0(rasterFile()) -->
+<!-- }) -->
+<!-- ``` -->
+
+<!-- ### file extension2 -->
+<!-- ```{r} -->
+<!-- verbatimTextOutput("extensionText2") -->
+<!-- ``` -->
+
+<!-- ```{r context = "server"} -->
+<!-- output$extensionText2 <- renderText({ -->
+<!--     fileExt() -->
+<!--   # paste0(rasterFile()) -->
+<!-- }) -->
+<!-- ``` -->
+
