@@ -1,7 +1,19 @@
 library(shiny)
 
+data_path <- "C:/Users/angus/OneDrive/Desktop/github/ORZ_dashboard"
+tifs <- list.files(data_path, full.names = T, pattern = ".tif")
+shps <- list.files(data_path, full.names = T, pattern = ".rds")
 file_df <- data.frame(
-   files      = list.files(data_path, full.names = TRUE)
+                  files      = c(tifs, shps)
+              ) %>%
+              mutate(
+                  name       = basename(files),
+                  extension  = tools::file_ext(files)
+              )
+
+getwd()
+file_df <- data.frame(
+  files      = list.files(data_path, full.names = TRUE)
 ) %>%
   mutate(
     name       = basename(files),

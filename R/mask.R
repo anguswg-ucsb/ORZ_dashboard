@@ -135,6 +135,34 @@ leaflet(df) %>%
   #     addActualLegend();
   #  }")
 
+# ---------------------
+crs <- CRS('+init=EPSG:26915')
+path <- "C:/Users/angus/OneDrive/Desktop/lynker/CPRA/data/"
+dashboard_path <- "C:/Users/angus/OneDrive/Desktop/github/ORZ_dashboard/"
+ext <- extent(c(405220, 909700, 3199570, 3416530))
 
+empty_r <- raster(ext = ext, ncols=276, nrows=690, res = c(480, 480), crs = crs)
+
+cup <- readRDS("cup_buffer_union_simplified.rds") %>%
+  # st_transform(4326) %>%
+  mutate(label = "Coastal use permits buffer")
+cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
+  st_transform(4326) %>%
+  mutate(
+    id    = 1,
+    label = "Restoration projects buffer"
+    )
+cpra_r     <- fasterize::fasterize(cpra_proj_poly, raster = empty_r, field = "id", fun = "sum")
+sal3        <- raster::raster(paste0(path, "salinity/salinity_03_03_480m_res_mask_clamp_v2.tif"))
+cpra_resample  <- resample(cpra_r, sal3,  method = "bilinear")
+writeRaster(cpra_resample, "cpra_restoration_proj_480m.tif", overwrite = T)
+cup_r     <- fasterize::fasterize(cup, raster = empty_r, field = "id", fun = "sum")
+sal3        <- raster::raster(paste0(path, "salinity/salinity_03_03_480m_res_mask_clamp_v2.tif"))
+cup_resample  <- resample(cup_r, sal3,  method = "bilinear")
+
+plot(cup_r)
+writeRaster(cup_resample, "coastal_use_permits_480m.tif", overwrite = T)
+intermed_r <- fasterize::fasterize(mask_interm, raster = empty_r, field = "id", fun = "sum")
+intermed_resample  <- resample(intermed_r, sal3,  method = "bilinear")
 
 

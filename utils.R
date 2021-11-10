@@ -1,6 +1,6 @@
 # --- Shiny utils ---
 basemap <- function(
-                land_sf, road_buffer, cpra_proj_poly, cup,
+                land_sf, road_buffer, cpra_projects, cup,
                 ldh, aoc, mask_open, mask_interm, sal3, sal10, depth1,
                 wlvl_clamp, hsi_sal3, hsi_sal10, hsi_sal3_mask, hsi_sal10_mask,
                 fetch_cat7, waterways, sowb, pts = NULL
@@ -55,7 +55,9 @@ basemap <- function(
   cup_pal          <- colorFactor(c("#EAC435"),   domain = cup_label)
 
   # CPRA restoration proj legend color palette + label
-  cpra_proj_label  <- "CPRA projects buffer"
+  # cpra_proj_label  <- "Restoration projects buffer"
+  # cpra_proj_pal    <- colorFactor(c("hotpink"),   domain = cpra_proj_label)
+  cpra_proj_label  <- "Restoration projects buffer"
   cpra_proj_pal    <- colorFactor(c("hotpink"),   domain = cpra_proj_label)
 
   # Waterways legend color palette + label
@@ -72,7 +74,9 @@ basemap <- function(
 
   # AOC active/not active factor color palette
   aoc_pal          <- colorFactor(c("darkorange"),   domain = aoc$label)
-
+library(mapview)
+  mapview(cpra_projects)
+  plot(cpra_projects)
   # ==================================
   # ----------- LEAFLET MAP ----------
   # ==================================
@@ -129,26 +133,42 @@ basemap <- function(
         pal       = sowb_pal,
         position  = "topleft", values    = sowb_label,
         group     = "State owned water bottoms", layerId = "State owned water bottoms") %>%
-    addPolygons(
-        data             = cpra_proj_poly,
-        col              = "black",
-        fillColor        = "hotpink", # "#CC2936",  #  "#F45B69",
-        fillOpacity      = 0.7, weight = 1.5,
-        highlightOptions = highlightOptions(color = "hotpink", opacity = 1, weight = 2, bringToFront = TRUE),
-        label            = ~label, group = "CPRA projects buffer") %>%
+    addRasterImage(
+      cup,
+      colors    = "#EAC435", opacity   = 0.7,
+      group     = "Coastal Use Permits") %>%   # colors  = if (raster::is.factor(fetch_cat7)) "Set1" else "YlGnBu",
     addLegend(
-        pal       = cpra_proj_pal,
-        position  = "topleft", values = cpra_proj_label,
-        group     = "CPRA projects buffer", layerId  = "CPRA projects buffer") %>%
-    addPolygons(
-        data              = cup,
-        col               = "black", fillColor = "#EAC435", fillOpacity = 0.4, weight = 1.5, #"#DD7373",
-        highlightOptions  = highlightOptions(color = "#EAC435", opacity = 1, weight = 2, bringToFront = TRUE),
-        label             = ~label, group = "Coastal Use Permits") %>%
+      pal       = cup_pal,
+      position  = "topleft", values    = cup_label,
+      group     = "Coastal Use Permits",  layerId   = "Coastal Use Permits") %>%
+    addRasterImage(
+      cpra_projects,
+      colors    = "hotpink", opacity   = 0.7,
+      group     = "Restoration projects buffer") %>%   # colors  = if (raster::is.factor(fetch_cat7)) "Set1" else "YlGnBu",
     addLegend(
-        pal       = cup_pal,
-        position  = "topleft", values = cup_label,
-        group     = "Coastal Use Permits", layerId  = "Coastal Use Permits") %>%
+      pal       = cpra_proj_pal,
+      position  = "topleft", values    = cpra_proj_label,
+      group     = "Restoration projects buffer",  layerId   = "Restoration projects buffer") %>%
+    # addPolygons(
+    #     data             = cpra_proj_poly,
+    #     col              = "black",
+    #     fillColor        = "hotpink", # "#CC2936",  #  "#F45B69",
+    #     fillOpacity      = 0.7, weight = 1.5,
+    #     highlightOptions = highlightOptions(color = "hotpink", opacity = 1, weight = 2, bringToFront = TRUE),
+    #     label            = ~label, group = "Restoration projects buffer") %>%
+    # addLegend(
+    #     pal       = cpra_proj_pal,
+    #     position  = "topleft", values = cpra_proj_label,
+    #     group     = "Restoration projects buffer", layerId  = "Restoration projects buffer") %>%
+    # addPolygons(
+    #     data              = cup,
+    #     col               = "black", fillColor = "#EAC435", fillOpacity = 0.4, weight = 1.5, #"#DD7373",
+    #     highlightOptions  = highlightOptions(color = "#EAC435", opacity = 1, weight = 2, bringToFront = TRUE),
+    #     label             = ~label, group = "Coastal Use Permits") %>%
+    # addLegend(
+    #     pal       = cup_pal,
+    #     position  = "topleft", values = cup_label,
+    #     group     = "Coastal Use Permits", layerId  = "Coastal Use Permits") %>%
    # leaflegend::addLegendFactor(pal = factpal,  title = htmltools::tags$div('LDH Status', style = 'font-size: 16px; color: black;'),  values = ldh$Status, labelStyle = 'font-size: 12px; font-weight: bold;',   group = "LDH") %>%
     addRasterImage(
         fetch_cat7,
@@ -303,18 +323,18 @@ basemap <- function(
       fillColor  = 'white', fillOpacity =  0.3, col  = "black",
       opacity    = 1, weight  = 1.5, label = ~label,  group  = "Land") %>%
     # addRasterImage(  waterways, colors  = "dodgerblue",  group = "Waterways") %>%
-    # addRasterImage( cpra_projects, colors  = turbo_pal, group = "CPRA projects buffer") %>%
+    # addRasterImage( cpra_projects, colors  = turbo_pal, group = "Restoration projects buffer") %>%
       addLayersControl(
         options = layersControlOptions(collapsed = TRUE),
         baseGroups = c("Imagery", "Topographic", "Nat. Geo. Topographic"), overlayGroups = c(
           "LDH", "AOC", "Salinity year 1", "Salinity year 8","Depth year 1", "Water level variability", "Fetch","HSI Salinity year 1", "HSI Salinity year 8", "HSI Salinity full mask year 1", "HSI Salinity full mask year 8",
           "Road buffer 2km", "Road buffer 5km","Road buffer 10km", "Road buffer 20km",
-          "Waterways", "CPRA projects buffer", "Coastal Use Permits", "State owned water bottoms",
+          "Waterways", "Restoration projects buffer", "Coastal Use Permits", "State owned water bottoms",
           "Full mask (LDH open)", "Full mask (LDH open & intermed.)", "Land")) %>%
     hideGroup(
       c("AOC", "Salinity year 1", "Salinity year 8", "Depth year 1", "Water level variability", "Fetch", "HSI Salinity year 1", "HSI Salinity year 8", "HSI Salinity full mask year 1", "HSI Salinity full mask year 8",
         "Road buffer 2km", "Road buffer 5km", "Road buffer 10km", "Road buffer 20km",  "Waterways",
-        "CPRA projects buffer", "Coastal Use Permits",  "State owned water bottoms",
+        "Restoration projects buffer", "Coastal Use Permits",  "State owned water bottoms",
         "Full mask (LDH open)", "Full mask (LDH open & intermed.)", "Land")
       )
     # htmlwidgets::onRender("

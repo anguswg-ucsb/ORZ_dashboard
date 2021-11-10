@@ -62,7 +62,7 @@ ldh <- readRDS("ldh_classifications.rds") %>%
                 Status == "intermed" ~ "Intermediate"
                 )
               )
-# ldh <- sf::read_sf("ldh_classification.shp")
+
 # ldh_shp <- ldh %>% 
 #   sf::st_as_sf()
 # 
@@ -76,8 +76,8 @@ ldh <- readRDS("ldh_classifications.rds") %>%
 fetch_cat7     <- raster::raster("fetch_mean_dist_480m_resampled_cat7.tif")
 
 road_buffer    <- readRDS("road_buffer2.rds")
-# road_buffer    <- sf::read_sf("road_buffer_polygon.shp") %>% 
-#   rename(buffer_dist = "bffr_ds")
+# road_buffer    <- sf::read_sf("road_buffer_polygon.shp") %>%
+#    rename(buffer_dist = "bffr_ds")
 # road_buffer    <- readRDS("road_buffer_clip.rds") %>%
 #     st_transform(26915) %>%
 #     st_transform(4326) %>%
@@ -94,15 +94,18 @@ road_buffer    <- readRDS("road_buffer2.rds")
 #   setNames(c("road_buffer_2km","road_buffer_5km", "road_buffer_10km",  "road_buffer_20km"))
 
 
-# cpra_projects  <-  raster::raster("restoration_inf_projects_buffer_union.tif")
-cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
-      st_transform(4326) %>%
-      mutate(label = "Restoration projects buffer")
+cpra_projects  <-  raster::raster("cpra_restoration_proj_480m_v2.tif")
+# cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
+#       st_transform(4326) %>%
+#       mutate(label = "Restoration projects buffer")
 # cpra_proj_poly <- sf::read_sf("restoration_inf_projects_buffer.shp")
-# cup <- raster::raster("cup_buffer_union_simplified.tif")
-cup <- readRDS("cup_buffer_union_simplified.rds") %>%
-      st_transform(4326) %>%
-      mutate(label = "Coastal use permits buffer")
+cup <- raster::raster("coastal_use_permits_480m.tif")
+# cup <- readRDS("cup_buffer_union_simplified.rds") %>%
+#       st_transform(4326) %>%
+#       mutate(label = "Coastal use permits buffer")
+# cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
+#       st_transform(4326) %>%
+#       mutate(label = "Restoration projects buffer")
 
 # cup_shp <- sf::read_sf("cup_buffer.shp")
 # cpra_projects  <- raster::raster("restoration_inf_projects_buffer_480m.tif")
@@ -156,6 +159,7 @@ hsi_sal10_mask  <- raster::raster("hsi_salinity_10_10_full_mask.tif")
 # State owned water bottoms 
 sowb           <- raster::raster("state_owned_water_bottoms_480m.tif")
 
+# mask_open      <- raster::raster("mask_ldh_open.tif")
 # full masks for OPEN LDH areas
 mask_open      <- readRDS("grid_mask_ldh_open.rds")%>%
   st_transform(4326) %>%
@@ -176,7 +180,17 @@ mask_interm    <- readRDS("grid_mask_ldh_open_intermed.rds") %>%
 #                 name       = basename(files),
 #                 extension  = tools::file_ext(files)
 #                      )
-# data_path <- "../ORZ_dashboard/www/"
+# data_path <- "C:/Users/angus/OneDrive/Desktop/github/ORZ_dashboard"
+# tifs <- list.files(data_path, full.names = T, pattern = ".tif")
+# shps <- list.files(data_path, full.names = T, pattern = ".rds")
+# file_df <- data.frame(
+#                   files      = c(tifs, shps)
+#               ) %>%
+#               mutate(
+#                   name       = basename(files),
+#                   extension  = tools::file_ext(files)
+#               )
+
 
 # file_df <- data.frame(
 #                 files      = list.files(data_path, full.names = TRUE)
@@ -184,12 +198,12 @@ mask_interm    <- readRDS("grid_mask_ldh_open_intermed.rds") %>%
 #               mutate(
 #                 name       = basename(files),
 #                 extension  = tools::file_ext(files)
-#                      ) %>% 
+#                      ) %>%
 #               filter(extension %in% c("tif", "shp"))
 
 
 file_df <- readRDS("file_directory.rds") %>% 
-  filter(extension == "tif")
+  filter(name != "file_directory.rds")
 
 # df <- data.frame(
 # files = c("../ORZ_dashboard/www/cup_buffer.shp", "../ORZ_dashboard/www/road_buffer_polygon.shp","../ORZ_dashboard/www/restoration_inf_projects_buffer.shp"),
@@ -200,29 +214,29 @@ file_df <- readRDS("file_directory.rds") %>%
 #   st_cast("MULTILINESTRING")
 
 # Initialize Maps 
-output$baseMap        <- renderLeaflet({
-    basemap(
-        land_sf         = land_sf,
-        road_buffer     = road_buffer,
-        cpra_proj_poly  = cpra_proj_poly,
-        cup             = cup,
-        mask_open       = mask_open,
-        mask_interm     = mask_interm,
-        sowb            = sowb,
-        ldh             = ldh,
-        aoc             = aoc,
-        sal3            = sal3,
-        sal10           = sal10,
-        depth1          = depth1,
-        wlvl_clamp      = wlvl_clamp,
-        hsi_sal3        = hsi_sal3,
-        hsi_sal10       = hsi_sal10,
-        hsi_sal3_mask   = hsi_sal3_mask,
-        hsi_sal10_mask  = hsi_sal10_mask,
-        fetch_cat7      = fetch_cat7,
-        waterways       = waterways
-        )
-  })
+# output$baseMap        <- renderLeaflet({
+#     basemap(
+#         land_sf         = land_sf,
+#         road_buffer     = road_buffer,
+#         cpra_projects   = cpra_projects,
+#         cup             = cup,
+#         mask_open       = mask_open,
+#         mask_interm     = mask_interm,
+#         sowb            = sowb,
+#         ldh             = ldh,
+#         aoc             = aoc,
+#         sal3            = sal3,
+#         sal10           = sal10,
+#         depth1          = depth1,
+#         wlvl_clamp      = wlvl_clamp,
+#         hsi_sal3        = hsi_sal3,
+#         hsi_sal10       = hsi_sal10,
+#         hsi_sal3_mask   = hsi_sal3_mask,
+#         hsi_sal10_mask  = hsi_sal10_mask,
+#         fetch_cat7      = fetch_cat7,
+#         waterways       = waterways
+#         )
+#   })
 
 ```
 
@@ -272,11 +286,11 @@ output$downloadData <- downloadHandler(
      },
    # filename =  paste0(datasetInput()),
     content = function(file) {
-      if(fileExt() == "shp") {
-               # saveRDS(paste0(dataFile()), file=file)
-        sf::st_write(sf::read_sf(paste0(dataFile())), file)
+      if(fileExt() == "rds") {
+           # saveRDS(paste0(dataFile()), file=file)
+            sf::write_sf(readRDS(paste0(dataFile())), file)
       } else if (fileExt() == "tif") {
-               raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
+            raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
       }
               # raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
         # raster::writeRaster(raster::raster(paste0(rasterFile())), file=file)
@@ -291,45 +305,45 @@ Column {data-width=250}
 -----------------------------------------------------------------------
 ### CPRA map
 ```{r}
-leafletOutput("baseMap")
+# leafletOutput("baseMap")
 ```
 
-<!-- ### file name -->
-<!-- ```{r} -->
-<!-- verbatimTextOutput("fileName") -->
-<!-- ``` -->
+### file name
+```{r}
+verbatimTextOutput("fileName")
+```
 
-<!-- ```{r context = "server"} -->
-<!-- output$fileName <- renderText({ -->
-<!--     paste0(dataFile()) -->
-<!--   # paste0(rasterFile()) -->
-<!-- }) -->
-<!-- ``` -->
+```{r context = "server"}
+output$fileName <- renderText({
+    paste0(dataFile())
+  # paste0(rasterFile())
+})
+```
 
-<!-- ### file extension -->
-<!-- ```{r} -->
-<!-- verbatimTextOutput("extensionText") -->
-<!-- ``` -->
+### file extension
+```{r}
+verbatimTextOutput("extensionText")
+```
 
-<!-- ```{r context = "server"} -->
-<!-- output$extensionText <- renderText({ -->
-<!--     ext <- file_df %>%  -->
-<!--             filter(name == paste0(dataFile())) -->
-<!--             # filter(name ==  "grid_mask_ldh_open.rds")  -->
-<!--     paste0(ext$extension) -->
-<!--   # paste0(rasterFile()) -->
-<!-- }) -->
-<!-- ``` -->
+```{r context = "server"}
+output$extensionText <- renderText({
+    ext <- file_df %>%
+            filter(name == paste0(dataFile()))
+            # filter(name ==  "grid_mask_ldh_open.rds")
+    paste0(ext$extension)
+  # paste0(rasterFile())
+})
+```
 
-<!-- ### file extension2 -->
-<!-- ```{r} -->
-<!-- verbatimTextOutput("extensionText2") -->
-<!-- ``` -->
+### file extension2
+```{r}
+verbatimTextOutput("extensionText2")
+```
 
-<!-- ```{r context = "server"} -->
-<!-- output$extensionText2 <- renderText({ -->
-<!--     fileExt() -->
-<!--   # paste0(rasterFile()) -->
-<!-- }) -->
-<!-- ``` -->
+```{r context = "server"}
+output$extensionText2 <- renderText({
+    fileExt()
+  # paste0(rasterFile())
+})
+```
 
