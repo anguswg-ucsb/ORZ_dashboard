@@ -1,0 +1,26 @@
+[general]
+creator=R package 'raster'
+created=2021-12-02 08:43:22
+[georeference]
+nrows=452
+ncols=1052
+xmin=404980
+ymin=3199810
+xmax=909940
+ymax=3416770
+projection=+proj=utm +zone=15 +datum=NAD83 +units=m +no_defs
+[data]
+datatype=FLT4S
+byteorder=little
+nbands=1
+bandorder=BIL
+categorical=FALSE
+minvalue=0.1
+maxvalue=1
+nodatavalue=-3.4e+38
+[legend]
+legendtype=
+values=
+color=
+[description]
+layername=road_buffers_overlay_480m

@@ -34,109 +34,67 @@ source('utils.R')
  
 
 ```{r context="server"}
+# local path to data
 path           <- "C:/Users/angus/OneDrive/Desktop/lynker/CPRA/data/"
 
-# coord ref. system 26915
+# # coord ref. system 26915
 crs            <- CRS('+init=EPSG:26915')
 
-# extent for all rasters 
+# # extent for all rasters
 ext            <- extent(c(405220, 909700, 3199570, 3416530))
 
-land_sf        <- readRDS("land_polygon_simple_v4.rds") %>% 
-        st_transform(26915) %>% 
-        st_transform(4326) %>% 
-        mutate(label = "Land")
+# landwater
+land_sf        <- readRDS("land_polygon_simple_v4.rds") %>%
+                      st_transform(26915) %>%
+                      st_transform(4326) %>%
+                      mutate(label = "2023 MP Land (Year 1)") 
+        # dplyr::select(land = landwater_binary_mp2023, label, geometry)
 
-# ldh <- readRDS("Final_Classification_Areas_All.rds") %>% 
-#   st_transform(4326)
-# ldh$Status <- factor(ldh$Status)
+# # LDH polygon
+ldh            <- readRDS("ldh_classifications_simple.rds") %>%
+                      st_transform(26915) %>%
+                      st_transform(4326)
 
-# ldh <- readRDS("Final_Classification_Areas_All_v2.rds")
-ldh <- readRDS("ldh_classifications.rds") %>%
-          st_transform(26915) %>%
-          st_transform(4326) %>%
-          mutate(
-              Status = case_when(
-                Status == "open" ~ "Open",
-                Status == "Closed" ~ "Closed",
-                Status == "intermed" ~ "Intermediate"
-                )
-              )
+# ldh <- readRDS("ldh_classifications.rds") %>%st_transform(26915) %>%  st_transform(4326) %>%
+#           mutate( Status = case_when(
+#                 Status == "open" ~ "Open",
+#                 Status == "Closed" ~ "Closed",
+#                 Status == "intermed" ~ "Intermediate"))
 
-# ldh_shp <- ldh %>% 
-#   sf::st_as_sf()
-# 
-# sf::write_sf(ldh_shp, "shp_data/ldh_classification.shp")
 
-# fetch_rc <- raster::raster("fetch_reclass_mean_dist_480m.tif")
-# fetch          <- raster::raster("fetch_mean_dist_480m_resampled.tif")
-# fetch_rc       <- raster::raster("fetch_mean_dist_480m_resampled_reclass.tif")
-
-# 7 categories (1km, 2km, 3km, 4km, 5km, 7km, 10km, 20km)
+# # 7 categories (1km, 2km, 3km, 4km, 5km, 7km, 10km, 20km)
 fetch_cat7     <- raster::raster("fetch_mean_dist_480m_resampled_cat7.tif")
 
-road_buffer    <- readRDS("road_buffer2.rds")
-# road_buffer    <- sf::read_sf("road_buffer_polygon.shp") %>%
-#    rename(buffer_dist = "bffr_ds")
-# road_buffer    <- readRDS("road_buffer_clip.rds") %>%
-#     st_transform(26915) %>%
-#     st_transform(4326) %>%
-#     mutate(
-#       buffer_dist = case_when(
-#             buffer == 2   ~ "2km road buffer",
-#             buffer == 5   ~ "5km road buffer",
-#             buffer == 10  ~ "10km road buffer",
-#             buffer == 20  ~ "20km road buffer")
-#            ) %>%
-#     st_cast("MULTILINESTRING")
 
-# road_stk       <- raster::stack("road_buffers_480m.tif") %>% 
-#   setNames(c("road_buffer_2km","road_buffer_5km", "road_buffer_10km",  "road_buffer_20km"))
+# Roads buffer line
+road_buffer    <- readRDS("road_buffer_simple.rds")
+# road_buffer    <- readRDS("road_buffer2.rds")
 
+# CPRA & FWOA Projects
+cpra_projects  <-  readRDS("cpra_fwoa_projects_buffer3.rds")
+# cpra_projects  <-  raster::raster("cpra_restoration_proj_480m_v2.tif")
 
-cpra_projects  <-  raster::raster("cpra_restoration_proj_480m_v2.tif")
-# cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
-#       st_transform(4326) %>%
-#       mutate(label = "Restoration projects buffer")
-# cpra_proj_poly <- sf::read_sf("restoration_inf_projects_buffer.shp")
-cup <- raster::raster("coastal_use_permits_480m.tif")
-# cup <- readRDS("cup_buffer_union_simplified.rds") %>%
-#       st_transform(4326) %>%
-#       mutate(label = "Coastal use permits buffer")
-# cpra_proj_poly <-  readRDS("restoration_inf_projects_buffer_union.rds") %>%
-#       st_transform(4326) %>%
-#       mutate(label = "Restoration projects buffer")
+# Coastal use permits
+cup            <- raster::raster("coastal_use_permits_480m.tif")
 
-# cup_shp <- sf::read_sf("cup_buffer.shp")
-# cpra_projects  <- raster::raster("restoration_inf_projects_buffer_480m.tif")
-# cpra_proj_poly <- readRDS("restoration_inf_projects_buffer_union.rds") %>%
-#   st_transform(4326) %>%
-#   mutate(label = "Restoration projects buffer")
-
-
+# AOC
 aoc            <- readRDS("aoc_area_polygon.rds") %>%
       st_transform(4326) %>%
       st_union() %>%
       st_as_sf() %>%
       mutate(
-        label   = "AOC areas"
+        label   = "AOC permitted areas"
         )
-# aoc <- sf::read_sf("aoc_area_polygon.shp")
 
+# Waterways
+waterways      <- readRDS("navig_waterways_buffer_simple.rds") %>%
+      st_transform(4326)
 # waterways      <- raster::raster("navig_waterways_480m_resampled.tif")
-waterways      <- readRDS("navig_waterways_buffer.rds") %>%
-      st_transform(4326) %>%
-      mutate(label = "Navigatable waterways")
-# waterways <- sf::read_sf("navigtable_waterways.shp") %>% 
-#   st_union() %>% 
-#   st_sf()  %>% 
-#   mutate(label = "Navigatable waterways")
-
+# waterways      <- readRDS("navig_waterways_buffer.rds") %>%     st_transform(4326) %>%     mutate(label = "Navigatable waterways")
 
 # salinity rasters 
 sal3           <-  raster::raster("salinity_03_03_480m_res_mask_v2.tif")
 sal10          <-  raster::raster("salinity_10_10_480m_res_mask_v2.tif")
-
 
 # depth inundation rasters
 depth1         <- raster::raster('depth_inundation_01_01_480m_resample.tif')
@@ -145,101 +103,246 @@ depth1         <- raster::raster('depth_inundation_01_01_480m_resample.tif')
 
 # Water level variability 
 wlvl_clamp      <- raster::raster("wlvl_variability_2021_025_threshold.tif")
+wlvl_clamp2      <- raster::raster("wlvl_variability_2028_resample.tif")
 # wlvl_2021      <- raster::raster("wlvl_variability_2021_threshold.tif")
-# wlvl_clamp      <- raster::raster("wlvl_variability_2021_05_threshold.tif")
-
-
-# HSI rasters
-hsi_sal3       <- raster::raster("hsi_salinity_03_03_resample_mask.tif")
-hsi_sal10      <- raster::raster("hsi_salinity_10_10_resample_mask.tif")
-
-hsi_sal3_mask  <- raster::raster("hsi_salinity_03_03_full_mask.tif")
-hsi_sal10_mask  <- raster::raster("hsi_salinity_10_10_full_mask.tif")
 
 # State owned water bottoms 
 sowb           <- raster::raster("state_owned_water_bottoms_480m.tif")
 
-# mask_open      <- raster::raster("mask_ldh_open.tif")
-# full masks for OPEN LDH areas
-mask_open      <- readRDS("grid_mask_ldh_open.rds")%>%
-  st_transform(4326) %>%
-  mutate(label = "Final mask (LDH open)")
-# # full masks for OPEN & INTERMED. LDH areas
-mask_interm    <- readRDS("grid_mask_ldh_open_intermed.rds") %>%
-  st_transform(4326) %>%
-  mutate(label = "Final mask (LDH open + intermed.)")
+# HSI 2017 500m grid raster
+hsi_2017       <- raster::raster("HSI_grid_500m_w_zeros.tif")
+# hsi_2017       <- raster::raster("HSI_grid_500m.tif")
 
-# mask_open <- sf::read_sf("mask_open.shp")
-# mask_interm <- sf::read_sf("mask_interm.shp")
-# raster_path <- "../ORZ_dashboard/raster_data/"
-# 
-# raster_df <- data.frame(
-#                 files      = list.files(raster_path, full.names = TRUE)
-#               ) %>%
-#               mutate(
-#                 name       = basename(files),
-#                 extension  = tools::file_ext(files)
-#                      )
-# data_path <- "C:/Users/angus/OneDrive/Desktop/github/ORZ_dashboard"
-# tifs <- list.files(data_path, full.names = T, pattern = ".tif")
-# shps <- list.files(data_path, full.names = T, pattern = ".rds")
-# file_df <- data.frame(
-#                   files      = c(tifs, shps)
-#               ) %>%
-#               mutate(
-#                   name       = basename(files),
-#                   extension  = tools::file_ext(files)
-#               )
+# Oyster leases 
+oyster_leases  <- readRDS("oyster_leases_simple.rds") 
+# oyster_leases  <- readRDS("oyster_leases_simplified2.rds") 
+
+# sedimentation rate
+sediment_rate3 <- raster::raster("sedimentation_rate_03_03_480m.tif")
+sediment_rate10 <- raster::raster("sedimentation_rate_10_10_480m.tif")
+
+# shallow water comm viability
+shallow_cv3   <- raster::raster("shallow_water_cv_03_03_mask.tif")
+shallow_cv10  <- raster::raster("shallow_water_cv_10_10_mask.tif")
+
+# shallow water comm viability no roads in equation
+shallow_cv3_no_roads  <- raster::raster("shallow_water_cv_03_03_mask_no_roads.tif")
+shallow_cv10_no_roads <- raster::raster("shallow_water_cv_10_10_mask_no_roads.tif")
+
+# deep water comm viability
+# deep_cv3      <- raster::raster("deep_water_cv_03_03_mask.tif")
+# deep_cv10     <- raster::raster("deep_water_cv_10_10_mask.tif")
+deep_cv3      <- raster::raster("deep_water_cv_03_03_mask_new_fetch_bins.tif")
+deep_cv10     <- raster::raster("deep_water_cv_10_10_mask_new_fetch_bins.tif")
+
+# Comm viability reclassed rasters
+rc_fetch      <- raster::raster("fetch_reclass_aoc.tif")
+rc_fetch_deep <- raster::raster("fetch_reclass_aoc_deep.tif")
 
 
-# file_df <- data.frame(
-#                 files      = list.files(data_path, full.names = TRUE)
-#               ) %>%
-#               mutate(
-#                 name       = basename(files),
-#                 extension  = tools::file_ext(files)
-#                      ) %>%
-#               filter(extension %in% c("tif", "shp"))
+  # mask to deep waters
+  r_deep <- setValues(
+    depth1, ifelse(getValues(depth1) == 3, 1, NA)
+  )
 
+
+  r_shallow <- setValues(
+    depth1, ifelse(getValues(depth1) == 2, 1, NA)
+  )
+rc_fetch_deep <- mask(rc_fetch_deep, r_deep)
+rc_fetch      <- mask(rc_fetch, r_shallow)
+
+# year1
+rc_wlvl3 <- raster::raster("wlvl_variability_reclass_aoc.tif")
+
+# year 8
+rc_wlvl10 <- raster::raster("wlvl_variability_2028_reclass_aoc.tif")
+
+rc_sediment3  <- raster::raster("sedimentation_rate_03_03_reclass_aoc.tif")
+rc_sediment10 <- raster::raster("sedimentation_rate_10_10_reclass_aoc.tif")
+
+rc_road <- raster::raster("road_buffer_cv.tif")
+
+# ---- Oyster viability layers ----
+# suitability indices, cool + warm + avg
+si_cool  <- raster::stack("si_salinity_cool_resample.tif") %>% 
+  setNames(c("cool_sal_year1", "cool_sal_year8"))
+
+si_warm  <- raster::stack("si_salinity_warm_resample.tif") %>% 
+  setNames(c("warm_sal_year1", "warm_sal_year8"))
+
+si_avg  <- raster::stack("si_salinity_avg_resample.tif") %>% 
+  setNames(c("avg_sal_year1", "avg_sal_year8"))
+
+# Oyster viability components
+si_ms3   <- raster::raster("si_ms_resample_03_03.tif")
+si_ms10  <- raster::raster("si_ms_resample_10_10.tif") 
+# si_ms <- raster::stack(si_ms3, si_ms10)
+# writeRaster(si_ms, "tmp.tif")
+
+si_ov3   <- raster::raster("si_ov_resample_03_03.tif")
+si_ov10  <- raster::raster("si_ov_resample_10_10.tif")
+
+# AOC layers
+aoc_shallow <-  raster::stack("aoc_shallow.tif")%>% 
+  setNames(c("aoc_shallow_year1", "aoc_shallow_year8"))
+# aoc_shallow3 <- raster::raster("aoc_shallow_03_03.tif") # aoc_shallow10 <- raster::raster("aoc_shallow_10_10.tif")
+
+aoc_no_road <- raster::stack("aoc_shallow_no_roads.tif") %>% 
+  setNames(c("aoc_shallow_no_roads_year1", "aoc_shallow_no_roads_year8"))
+
+aoc_deep <- raster::stack("aoc_deep.tif") %>% 
+  setNames(c("aoc_deep_year1", "aoc_deep_year8"))
 
 file_df <- readRDS("file_directory.rds") %>% 
-  filter(name != "file_directory.rds")
+  filter(name != "file_directory.rds", extension == "tif")
 
-# df <- data.frame(
-# files = c("../ORZ_dashboard/www/cup_buffer.shp", "../ORZ_dashboard/www/road_buffer_polygon.shp","../ORZ_dashboard/www/restoration_inf_projects_buffer.shp"),
-# name  = c("cup_buffer.shp", "road_buffer_polygon.shp", "restoration_inf_projects_buffer.shp"), 
-# extension = c("shp", "shp", "shp"))
-  # filter(extension == "tif")
-# road_line <- road_buffer %>% 
-#   st_cast("MULTILINESTRING")
+# HSI rasters
+# hsi_sal3       <- raster::raster("hsi_salinity_03_03_resample_mask.tif")
+# hsi_sal10      <- raster::raster("hsi_salinity_10_10_resample_mask.tif")
+# hsi_sal3_mask  <- raster::raster("hsi_salinity_03_03_full_mask.tif")
+# hsi_sal10_mask  <- raster::raster("hsi_salinity_10_10_full_mask.tif")
+
+
+# mask_open      <- raster::raster("mask_ldh_open.tif")
+# # full masks for OPEN LDH areas
+# mask_open      <- readRDS("grid_mask_ldh_open.rds")%>%
+#   st_transform(4326) %>%
+#   mutate(label = "Final mask (LDH open)")
+# # # full masks for OPEN & INTERMED. LDH areas
+# mask_interm    <- readRDS("grid_mask_ldh_open_intermed.rds") %>%
+#   st_transform(4326) %>%
+#   mutate(label = "Final mask (LDH open + intermed.)")
 
 # Initialize Maps 
-# output$baseMap        <- renderLeaflet({
-#     basemap(
-#         land_sf         = land_sf,
-#         road_buffer     = road_buffer,
-#         cpra_projects   = cpra_projects,
-#         cup             = cup,
-#         mask_open       = mask_open,
-#         mask_interm     = mask_interm,
-#         sowb            = sowb,
-#         ldh             = ldh,
-#         aoc             = aoc,
-#         sal3            = sal3,
-#         sal10           = sal10,
-#         depth1          = depth1,
-#         wlvl_clamp      = wlvl_clamp,
-#         hsi_sal3        = hsi_sal3,
-#         hsi_sal10       = hsi_sal10,
-#         hsi_sal3_mask   = hsi_sal3_mask,
-#         hsi_sal10_mask  = hsi_sal10_mask,
-#         fetch_cat7      = fetch_cat7,
-#         waterways       = waterways
-#         )
-#   })
+output$baseMap1        <- renderLeaflet({
+    basemap2(
+        sal3                  = sal3, 
+        fetch_cat7            = fetch_cat7,
+        wlvl_clamp            = wlvl_clamp,
+        sediment_rate3        = sediment_rate3,
+        # rc_fetch              = rc_fetch,
+        # rc_fetch_deep         = rc_fetch_deep,
+        # rc_wlvl3              = rc_wlvl3,
+        # rc_road               = rc_road, 
+        # rc_sediment3          = rc_sediment3,
+        # shallow_cv3           = shallow_cv3, 
+        # shallow_cv3_no_roads  = shallow_cv3_no_roads, 
+        # deep_cv3              = deep_cv3,
+        land_sf               = land_sf, 
+        depth1                = depth1 ,
+        ldh                   = ldh, 
+        waterways             = waterways,
+        cup                   = cup, 
+        cpra_projects         = cpra_projects, 
+        sowb                  = sowb, 
+        aoc                   = aoc,
+        oyster_leases         = oyster_leases, 
+        hsi_2017              = hsi_2017,
+        pts                   = NULL
+        )
+  })
 
+output$baseMap2        <- renderLeaflet({
+    basemap3(
+        sal10                  = sal10, 
+        # fetch_cat7             = fetch_cat7,
+        wlvl_clamp2            = wlvl_clamp2,
+        sediment_rate10        = sediment_rate10,
+        # rc_fetch               = rc_fetch,
+        # rc_fetch_deep          = rc_fetch_deep,
+        # rc_wlvl10              = rc_wlvl10,
+        # rc_road                = rc_road, 
+        # rc_sediment10          = rc_sediment10,
+        # shallow_cv10           = shallow_cv10, 
+        # shallow_cv10_no_roads  = shallow_cv10_no_roads, 
+        # deep_cv10              = deep_cv10,
+        # land_sf                = land_sf,
+        pts                    = NULL
+        )
+  })
+
+output$cvMap        <- renderLeaflet({
+    cv_basemap(
+        rc_fetch               = rc_fetch,
+        rc_fetch_deep          = rc_fetch_deep,
+        rc_wlvl3               = rc_wlvl3,
+        rc_wlvl10              = rc_wlvl10,
+        rc_road                = rc_road, 
+        rc_sediment3           = rc_sediment3,
+        rc_sediment10          = rc_sediment10,
+        shallow_cv3            = shallow_cv3, 
+        shallow_cv10           = shallow_cv10, 
+        shallow_cv3_no_roads   = shallow_cv3_no_roads, 
+        shallow_cv10_no_roads  = shallow_cv10_no_roads, 
+        deep_cv3               = deep_cv3,
+        deep_cv10              = deep_cv10,
+        pts                    = NULL
+        )
+  })
+
+output$ovMap        <- renderLeaflet({
+    ov_basemap(
+        si_cool                = si_cool,
+        si_warm                = si_warm,
+        si_avg                 = si_avg,
+        si_ms3                 = si_ms3,
+        si_ms10                = si_ms10, 
+        si_ov3                 = si_ov3,
+        si_ov10                = si_ov10,
+        pts                    = NULL
+        )
+  })
+
+output$aocMap        <- renderLeaflet({
+    aoc_basemap(
+        aoc                    = aoc,
+        aoc_shallow            = aoc_shallow,
+        aoc_no_road            = aoc_no_road,
+        aoc_deep               = aoc_deep,
+        pts                    = NULL
+        )
+  })
 ```
 
+AOC model
+=====================================
+Column 
+-----------------------------------------------------------------------
+### Commercial viability
+```{r}
+# Column {data-width=250}
+leafletOutput("cvMap")
+```
+
+### Oyster viability
+```{r}
+# Column {data-width=250}
+leafletOutput("ovMap")
+```
+
+```{r context = "server"}
+# Make maps track eachother when interacted with
+observe({ # Observer to respond to zoom / pan of baseMap1 and apply to baseMap2
+    coords  <- input$aocMap_center
+    zoom    <- input$aocMap_zoom
+    print(coords)
+    print(zoom)
+    if (!is.null(coords)) {
+      leafletProxy("ovMap") %>%
+        setView(lat = coords$lat, lng = coords$lng, zoom = zoom)
+      leafletProxy("cvMap") %>%
+        setView(lat = coords$lat, lng = coords$lng, zoom = zoom)
+    }
+})
+```
+Column 
+-----------------------------------------------------------------------
+### AOC (Commercial x Oyster viability)
+```{r}
+# Column {data-width=250}
+leafletOutput("aocMap")
+```
 
 Data outputs
 =====================================
@@ -255,7 +358,21 @@ selectInput(
   inputId   =  "fileSelect",
   label     =  "Download data",
   selected  =  NULL,
-  choices   =  file_df$name
+  # choices   =  file_df$name
+  choices   =  c(
+    "Coastal use permits"           = "coastal_use_permits_480m.tif" ,
+    "Restoration projects"          = "cpra_restoration_proj_480m_v2.tif" ,
+    "Depth inundation year 1"       = "depth_inundation_01_01_480m_resample.tif",
+    "Fetch distance"                = "fetch_mean_dist_480m_resampled_cat7.tif",
+    "HSI year 1"                    = "hsi_salinity_03_03_resample_mask.tif", 
+    "HSI year 8"                    =  "hsi_salinity_10_10_resample_mask.tif" ,
+    "HSI year 1 mask"               = "hsi_salinity_03_03_full_mask.tif", 
+    "HSI year 8 mask"               = "hsi_salinity_10_10_full_mask.tif", 
+    "Salinity year 1"               =  "salinity_03_03_480m_res_mask_v2.tif" , 
+    "Salinity year 8"               =  "salinity_10_10_480m_res_mask_v2.tif" ,
+    "State owned water bottoms"     = "state_owned_water_bottoms_480m.tif",
+    "Water level variability 2021"  = "wlvl_variability_2021_025_threshold.tif" 
+  )
   )
 ```
 
@@ -286,12 +403,13 @@ output$downloadData <- downloadHandler(
      },
    # filename =  paste0(datasetInput()),
     content = function(file) {
-      if(fileExt() == "rds") {
-           # saveRDS(paste0(dataFile()), file=file)
-            sf::write_sf(readRDS(paste0(dataFile())), file)
-      } else if (fileExt() == "tif") {
-            raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
-      }
+       raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
+      # if(fileExt() == "rds") {
+      #      # saveRDS(paste0(dataFile()), file=file)
+      #       sf::write_sf(readRDS(paste0(dataFile())), file)
+      # } else if (fileExt() == "tif") {
+      #       raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
+      # }
               # raster::writeRaster(raster::raster(paste0(dataFile())), file=file)
         # raster::writeRaster(raster::raster(paste0(rasterFile())), file=file)
       # write.csv(mtcars, file=file)
@@ -301,49 +419,72 @@ output$downloadData <- downloadHandler(
 )
 ```
 
-Column {data-width=250}
+Column 
 -----------------------------------------------------------------------
-### CPRA map
+### Year 1 model run + projects and buffers 
 ```{r}
-# leafletOutput("baseMap")
+# Column {data-width=250}
+leafletOutput("baseMap1")
 ```
 
-### file name
+Column 
+-----------------------------------------------------------------------
+### Year 8 model run
 ```{r}
-verbatimTextOutput("fileName")
+leafletOutput("baseMap2")
 ```
 
 ```{r context = "server"}
-output$fileName <- renderText({
-    paste0(dataFile())
-  # paste0(rasterFile())
+# Make maps track eachother when interacted with
+observe({ # Observer to respond to zoom / pan of baseMap1 and apply to baseMap2
+    coords  <- input$baseMap1_center
+    zoom    <- input$baseMap1_zoom
+    print(coords)
+    print(zoom)
+    if (!is.null(coords)) {
+      leafletProxy("baseMap2") %>%
+        setView(lat = coords$lat, lng = coords$lng, zoom = zoom)
+    }
 })
 ```
 
-### file extension
-```{r}
-verbatimTextOutput("extensionText")
-```
 
-```{r context = "server"}
-output$extensionText <- renderText({
-    ext <- file_df %>%
-            filter(name == paste0(dataFile()))
-            # filter(name ==  "grid_mask_ldh_open.rds")
-    paste0(ext$extension)
-  # paste0(rasterFile())
-})
-```
+<!-- ### file name -->
+<!-- ```{r} -->
+<!-- verbatimTextOutput("fileName") -->
+<!-- ``` -->
 
-### file extension2
-```{r}
-verbatimTextOutput("extensionText2")
-```
+<!-- ```{r context = "server"} -->
+<!-- output$fileName <- renderText({ -->
+<!--     paste0(dataFile()) -->
+<!--   # paste0(rasterFile()) -->
+<!-- }) -->
+<!-- ``` -->
 
-```{r context = "server"}
-output$extensionText2 <- renderText({
-    fileExt()
-  # paste0(rasterFile())
-})
-```
+<!-- ### file extension -->
+<!-- ```{r} -->
+<!-- verbatimTextOutput("extensionText") -->
+<!-- ``` -->
+
+<!-- ```{r context = "server"} -->
+<!-- output$extensionText <- renderText({ -->
+<!--     ext <- file_df %>% -->
+<!--             filter(name == paste0(dataFile())) -->
+<!--             # filter(name ==  "grid_mask_ldh_open.rds") -->
+<!--     paste0(ext$extension) -->
+<!--   # paste0(rasterFile()) -->
+<!-- }) -->
+<!-- ``` -->
+
+<!-- ### file extension2 -->
+<!-- ```{r} -->
+<!-- verbatimTextOutput("extensionText2") -->
+<!-- ``` -->
+
+<!-- ```{r context = "server"} -->
+<!-- output$extensionText2 <- renderText({ -->
+<!--     fileExt() -->
+<!--   # paste0(rasterFile()) -->
+<!-- }) -->
+<!-- ``` -->
 

@@ -47,6 +47,34 @@ Data outputs
 =====================================
 Inputs {.sidebar}
 -------------------------------------
+
+***
+
+<br>
+
+```{r}
+selectInput(
+  inputId   =  "fileSelect",
+  label     =  "Download data",
+  selected  =  NULL,
+  choices   =  file_df$name
+  )
+```
+
+```{r}
+dataFile <- reactive({
+  input$fileSelect
+})
+
+fileExt <- reactive({
+  ext <- file_df %>% 
+            filter(name == paste0(dataFile()))   
+            # filter(name == "salinity_10_10_480m_res_mask_v2.tif")
+            
+  ext$extension
+})
+```
+
 ### 
 ```{r}
 wellPanel(downloadButton("downloadData"))
